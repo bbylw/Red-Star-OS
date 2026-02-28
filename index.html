@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>붉은별 Red Star OS 5.0 | 자유의 노드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --rs-glass-bg: rgba(40, 10, 10, 0.72);
+            --rs-glass-border: rgba(255, 80, 80, 0.18);
+            --rs-glass-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.7), inset 0 1px 0 rgba(255,100,100,0.12);
+            --sys-accent: #c41e1e;
+            --sys-red: #ff3b30; --sys-yellow: #ffbd2e; --sys-green: #27c93f;
+            --rs-dark: #1a0808; --rs-crimson: #8b0000; --rs-gold: #d4a017;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; -webkit-touch-callout: none; font-family: "Malgun Gothic", "맑은 고딕", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+        body { overflow: hidden; background-color: #000; overscroll-behavior-y: none; }
+
+        .noise-overlay { position: fixed; inset: 0; pointer-events: none; z-index: 9999; opacity: 0.04; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); }
+
+        #mac-power-off {
+            position: fixed; inset: 0; background-color: #0a0000; z-index: 15000; display: none; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .power-btn {
+            width: 80px; height: 80px; border-radius: 50%; border: 2px solid rgba(200,30,30,0.3); display: flex; justify-content: center; align-items: center; cursor: pointer; transition: all 0.3s;
+        }
+        .power-btn:hover { border-color: rgba(200,30,30,0.7); box-shadow: 0 0 30px rgba(200,30,30,0.25); }
+        .power-btn:active { transform: scale(0.95); }
+
+        #mac-desktop { position: fixed; inset: 0; background: linear-gradient(135deg, #1a0505 0%, #0d0202 50%, #000000 100%); display: none; z-index: 100; transition: background 1s; }
+        #mac-desktop.hacked { background: linear-gradient(135deg, #001a0d 0%, #000d05 50%, #000000 100%); }
+        .mesh-gradient { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+        .mesh-blob { position: absolute; filter: blur(90px); border-radius: 50%; animation: float 20s infinite ease-in-out alternate; transition: background 1s, filter 1s; }
+        .blob-1 { top: -20%; left: -10%; width: 70vw; height: 70vw; background: rgba(139, 0, 0, 0.35); }
+        .blob-2 { bottom: -30%; right: -20%; width: 80vw; height: 80vw; background: rgba(100, 10, 10, 0.25); animation-delay: -5s; }
+        .blob-3 { top: 30%; left: 40%; width: 50vw; height: 50vw; background: rgba(180, 20, 20, 0.15); animation-delay: -10s; }
+        #mac-desktop.hacked .blob-1 { background: rgba(20, 180, 80, 0.35); filter: blur(120px); }
+        #mac-desktop.hacked .blob-2 { background: rgba(10, 130, 60, 0.25); }
+        #mac-desktop.hacked .blob-3 { background: rgba(30, 200, 100, 0.18); }
+        @keyframes float { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(5%, 5%) scale(1.1); } }
+
+        #mac-boot { position: fixed; inset: 0; background-color: #0a0000; z-index: 500; display: none; justify-content: center; align-items: center; flex-direction: column; }
+        #apple-logo { width: 80px; height: 80px; fill: #c41e1e; margin-bottom: 50px; }
+        .progress-bar-container { width: 200px; height: 4px; background-color: #331111; border-radius: 4px; overflow: hidden; }
+        #progress-fill { height: 100%; width: 0%; background-color: #c41e1e; border-radius: 4px; transition: width 0.2s ease-out; }
+        
+        #mac-login { position: fixed; inset: 0; z-index: 400; display: none; flex-direction: column; justify-content: center; align-items: center; background: rgba(10,0,0,0.6); backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px); opacity: 0; transition: opacity 0.5s; }
+        .login-avatar { width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg, #8b0000 0%, #c41e1e 50%, #d4a017 100%); display: flex; justify-content: center; align-items: center; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(139,0,0,0.5); border: 2px solid rgba(212,160,23,0.3); }
+        .login-input { background: rgba(139,0,0,0.15); border: 1px solid rgba(200,30,30,0.3); padding: 8px 16px; border-radius: 16px; color: white; outline: none; width: 180px; text-align: center; font-size: 14px; backdrop-filter: blur(10px); transition: border 0.2s; }
+        .login-input:focus { border-color: rgba(200,30,30,0.6); }
+
+        #screen-flash { position: fixed; inset: 0; background: black; z-index: 10000; opacity: 0; pointer-events: none; transition: opacity 0.8s ease-in-out; }
+
+        #menu-bar {
+            position: fixed; top: 0; left: 0; right: 0; height: 28px; background-color: rgba(40, 5, 5, 0.6);
+            backdrop-filter: blur(40px) saturate(180%); -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-bottom: 0.5px solid rgba(200, 30, 30, 0.15); display: flex; align-items: center; padding: 0 12px; z-index: 1000;
+            font-size: 13px; color: rgba(255,220,220,0.95); font-weight: 500; letter-spacing: 0.3px;
+        }
+        .menu-item { padding: 0 10px; cursor: default; height: 100%; display: flex; align-items: center; border-radius: 4px; margin: 0 2px; }
+        .menu-item.actionable:active, .menu-item.active { background-color: rgba(200, 30, 30, 0.3); }
+        .menu-item svg { width: 14px; height: 14px; fill: currentColor; }
+        .status-icons { display: flex; align-items: center; gap: 14px; margin-right: 12px; opacity: 0.9; cursor: pointer; height: 100%; }
+
+        #apple-dropdown {
+            position: absolute; top: 28px; left: 10px; width: 220px; background: rgba(50, 10, 10, 0.8);
+            backdrop-filter: blur(50px) saturate(200%); -webkit-backdrop-filter: blur(50px) saturate(200%);
+            border: 1px solid rgba(200,30,30,0.2); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+            padding: 5px; z-index: 9999; display: none; flex-direction: column;
+        }
+        .dd-item { padding: 4px 10px; color: rgba(255,220,220,0.9); font-size: 13px; border-radius: 5px; cursor: default; display: flex; justify-content: space-between; }
+        .dd-item:hover { background-color: var(--sys-accent); color: white; }
+        .dd-divider { height: 1px; background: rgba(200,30,30,0.15); margin: 4px 0; }
+
+        #control-center {
+            position: fixed; top: 35px; right: 10px; width: 320px; background: rgba(50, 10, 10, 0.75); backdrop-filter: blur(50px) saturate(200%);
+            border: 1px solid rgba(200,30,30,0.2); border-radius: 16px; box-shadow: 0 15px 40px rgba(0,0,0,0.6); padding: 16px; z-index: 1001;
+            opacity: 0; transform: translateY(-10px); pointer-events: none; transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #control-center.open { opacity: 1; transform: translateY(0); pointer-events: auto; }
+        .cc-module { background: rgba(139,0,0,0.1); border: 1px solid rgba(200,30,30,0.08); border-radius: 12px; padding: 12px; display: flex; align-items: center; gap: 12px; }
+        .cc-icon-btn { width: 32px; height: 32px; border-radius: 50%; background: var(--sys-accent); display: flex; justify-content: center; align-items: center; color: white; }
+
+        #context-menu {
+            position: absolute; width: 200px; background: rgba(50, 10, 10, 0.75); backdrop-filter: blur(40px);
+            border: 1px solid rgba(200,30,30,0.2); border-radius: 8px; box-shadow: 0 10px 20px rgba(0,0,0,0.6);
+            padding: 5px; z-index: 9999; display: none; flex-direction: column;
+        }
+
+        #dock-container {
+            position: fixed; bottom: 10px; left: 50%; transform: translateX(-50%); z-index: 1000;
+            display: flex; justify-content: center; align-items: flex-end; padding: 6px; gap: 8px; height: 70px;
+            background-color: rgba(100, 10, 10, 0.2); backdrop-filter: blur(40px) saturate(200%);
+            border: 0.5px solid rgba(200, 30, 30, 0.15); border-radius: 24px; box-shadow: 0 10px 30px rgba(0,0,0,0.5), inset 0 1px 1px rgba(200,30,30,0.1);
+        }
+        .dock-separator { width: 1px; height: 40px; background-color: rgba(200,30,30,0.2); margin: 0 4px; align-self: center; }
+        .dock-icon-wrapper { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+        .dock-icon {
+            width: 48px; height: 48px; border-radius: 12px; cursor: pointer; transform-origin: bottom center;
+            display: flex; justify-content: center; align-items: center; overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.4), inset 0 1px 1px rgba(200,30,30,0.15); transition: filter 0.2s;
+        }
+        .dock-icon:active { filter: brightness(0.7); }
+        .dock-indicator { width: 4px; height: 4px; background-color: rgba(200,60,60,0.8); border-radius: 50%; opacity: 0; transition: opacity 0.2s; margin-top: 4px; }
+        .dock-icon-wrapper.opened .dock-indicator { opacity: 1; }
+        .dock-tooltip {
+            position: absolute; top: -45px; background: rgba(50, 10, 10, 0.85); backdrop-filter: blur(20px);
+            color: #fdd; font-size: 12px; font-weight: 500; padding: 6px 10px; border-radius: 6px; border: 0.5px solid rgba(200,30,30,0.15);
+            pointer-events: none; opacity: 0; transform: translateY(5px); transition: all 0.2s; white-space: nowrap; box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+        }
+        .dock-tooltip::after { content: ''; position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%) rotate(45deg); width: 8px; height: 8px; background: rgba(50, 10, 10, 0.85); border-bottom: 0.5px solid rgba(200,30,30,0.15); border-right: 0.5px solid rgba(200,30,30,0.15); }
+        .dock-icon-wrapper:hover .dock-tooltip { opacity: 1; transform: translateY(0); }
+
+        .mac-window {
+            position: absolute; background-color: var(--rs-glass-bg); backdrop-filter: blur(50px) saturate(200%); -webkit-backdrop-filter: blur(50px) saturate(200%);
+            border: 1px solid var(--rs-glass-border); border-radius: 12px; box-shadow: var(--rs-glass-shadow);
+            display: flex; flex-direction: column; min-width: 300px; min-height: 200px; display: none; overflow: hidden; transform-origin: center;
+            animation: windowOpen 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; transition: box-shadow 0.2s, filter 0.2s;
+        }
+        @keyframes windowOpen { 0% { opacity: 0; transform: scale(0.95); } 100% { opacity: 1; transform: scale(1); } }
+        .mac-window.inactive { box-shadow: 0 10px 20px -5px rgba(0,0,0,0.4), inset 0 1px 0 rgba(200,30,30,0.05); filter: grayscale(15%) opacity(0.98); z-index: 100 !important; }
+        .mac-window.inactive .t-btn { background-color: rgba(255,255,255,0.12) !important; border-color: rgba(255,255,255,0.05) !important; }
+        .mac-window.inactive .t-btn::after { display: none; }
+
+        .mac-titlebar {
+            height: 52px; display: flex; align-items: center; padding: 0 16px; cursor: default; touch-action: none; position: relative;
+            background: linear-gradient(to bottom, rgba(200,30,30,0.08), transparent 30%); border-bottom: 0.5px solid rgba(200,30,30,0.08);
+        }
+        .traffic-lights { display: flex; gap: 8px; position: absolute; left: 16px; }
+        .t-btn { width: 12px; height: 12px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: background-color 0.2s; }
+        .t-btn::after { content: ''; opacity: 0; transition: opacity 0.2s; color: rgba(0,0,0,0.6); font-size: 8px; font-weight: bold; }
+        .traffic-lights:hover .t-btn::after { opacity: 1; }
+        .t-close { background-color: var(--sys-red); border: 0.5px solid #e0443e; } .t-close::after { content: '✕'; font-size: 7px;}
+        .t-min { background-color: var(--sys-yellow); border: 0.5px solid #dea123; } .t-min::after { content: '−'; font-size: 9px; line-height: 10px;}
+        .t-max { background-color: var(--sys-green); border: 0.5px solid #1aab29; } .t-max::after { content: '+'; font-size: 9px; line-height: 10px;}
+        .mac-content { flex-grow: 1; overflow: auto; position: relative; color: rgba(255,220,220,0.85); display: flex; flex-direction: column; }
+        
+        .textedit-title { position: absolute; left: 50%; transform: translateX(-50%); font-size: 13px; font-weight: 600; color: rgba(255,220,220,0.9); display: flex; align-items: center; gap: 6px; }
+        .textedit-toolbar { height: 36px; background: rgba(0,0,0,0.3); border-bottom: 0.5px solid rgba(200,30,30,0.08); display: flex; align-items: center; padding: 0 16px; gap: 12px; }
+        .te-tool { width: 24px; height: 24px; border-radius: 4px; display: flex; justify-content: center; align-items: center; color: rgba(255,200,200,0.5); cursor: pointer; }
+        .notepad-text { font-family: "Malgun Gothic", sans-serif; font-size: 14px; line-height: 1.7; white-space: pre-wrap; padding: 24px 32px; flex-grow: 1; background: rgba(0,0,0,0.15); }
+
+        .am-layout { display: flex; height: 100%; }
+        .am-sidebar { width: 140px; background: rgba(0,0,0,0.25); border-right: 0.5px solid rgba(200,30,30,0.1); padding: 12px 8px; display: flex; flex-direction: column; gap: 4px; }
+        .am-nav-item { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500; color: rgba(255,200,200,0.6); display: flex; align-items: center; gap: 8px; cursor: default; }
+        .am-nav-item.active { background: rgba(200,30,30,0.2); color: #fcc; }
+        .am-main { flex-grow: 1; padding: 16px; display: flex; flex-direction: column; }
+        .am-card { background: rgba(0,0,0,0.3); border: 0.5px solid rgba(200,30,30,0.1); border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+
+        .terminal-bg { background-color: rgba(10,0,0,0.85); padding: 16px; font-family: "SF Mono", "Menlo", "Consolas", monospace; font-size: 13px; flex-grow: 1; color: #fdd; }
+        .terminal-input { background: transparent; border: none; color: #fdd; outline: none; width: 70%; font-family: inherit; font-size: 16px; }
+
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; flex-grow: 1; background: rgba(0,0,0,0.6); }
+        .calc-btn { background: rgba(200,30,30,0.08); display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: default; transition: background 0.1s; color: #fdd; }
+        .calc-btn:active { background: rgba(200,30,30,0.25); }
+        .calc-btn.op { background: #c41e1e; color: white; font-weight: 500; }
+        .calc-btn.op:active { background: #8b0000; }
+        .calc-btn.top { background: rgba(200,30,30,0.15); }
+        .calc-screen { height: 80px; display: flex; justify-content: flex-end; align-items: flex-end; padding: 10px 20px; font-size: 40px; font-weight: 300; color: #fdd; }
+
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(200,30,30,0.2); border-radius: 5px; border: 2px solid transparent; background-clip: padding-box; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(200,30,30,0.4); }
+    </style>
+</head>
+<body>
+    <div class="noise-overlay"></div>
+    <div id="screen-flash"></div>
+
+    <!-- 电源关机状态 -->
+    <div id="mac-power-off">
+        <div class="power-btn" onclick="startBootSequence()">
+            <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#c41e1e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"></path><line x1="12" y1="2" x2="12" y2="12"></line></svg>
+        </div>
+        <div class="text-red-900 mt-4 text-sm font-mono tracking-widest">전원 꺼짐 / POWER OFF</div>
+    </div>
+
+    <!-- 启动系统 -->
+    <div id="mac-boot">
+        <svg id="apple-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+            <polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35" fill="#c41e1e"/>
+        </svg>
+        <div class="text-red-400 text-xs mt-2 mb-6 tracking-[0.3em] font-mono">붉은별 RED STAR OS</div>
+        <div class="progress-bar-container"><div id="progress-fill"></div></div>
+    </div>
+
+    <!-- 登录屏幕 -->
+    <div id="mac-login">
+        <div class="login-avatar">
+            <svg viewBox="0 0 100 100" width="60" height="60" fill="rgba(255,220,180,0.9)">
+                <polygon points="50,10 58,32 82,32 63,45 70,68 50,55 30,68 37,45 18,32 42,32"/>
+            </svg>
+        </div>
+        <div class="text-red-200 text-xl font-bold mb-1 tracking-wide">동지 / Comrade</div>
+        <div class="text-red-400/50 text-xs mb-4">붉은별 운영체제 5.0</div>
+        <input type="password" class="login-input" id="login-pw" placeholder="암호 입력" autocomplete="off">
+        <div class="text-red-400/40 text-xs mt-4" id="login-hint">Enter 키를 눌러 로그인</div>
+    </div>
+
+    <!-- 桌面系统 -->
+    <div id="mac-desktop">
+        <div class="mesh-gradient">
+            <div class="mesh-blob blob-1"></div><div class="mesh-blob blob-2"></div><div class="mesh-blob blob-3"></div>
+        </div>
+        
+        <!-- 顶部菜单栏 -->
+        <div id="menu-bar">
+            <div class="menu-item actionable" style="padding: 0 12px; position:relative;" id="btn-apple-menu">
+                <svg viewBox="0 0 100 100" width="14" height="14" fill="currentColor"><polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35"/></svg>
+            </div>
+            
+            <div class="menu-item font-bold" id="app-name">파일관리</div>
+            <div class="menu-item hidden md:flex" id="menu-file">File</div>
+            <div class="menu-item hidden md:flex" id="menu-edit">Edit</div>
+            <div class="menu-item hidden md:flex" id="menu-view">View</div>
+            <div class="menu-item hidden md:flex" id="menu-window">Window</div>
+            <div class="menu-item hidden md:flex" id="menu-help">Help</div>
+            <div style="flex-grow: 1;"></div>
+            <div class="status-icons" id="btn-control-center">
+                <svg viewBox="0 0 24 24"><path d="M12.01 21.49L23.64 7c-.45-.34-4.93-4-11.64-4C5.28 3 .81 6.66.36 7l11.63 14.49.01.01.01-.01z"/></svg>
+                <svg viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+                <svg viewBox="0 0 24 24" id="cc-toggle-icon"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+            </div>
+            <div class="menu-item" id="clock" style="padding-right: 16px;">주체114(2025) 2.28</div>
+        </div>
+
+        <!-- 下拉菜单 -->
+        <div id="apple-dropdown">
+            <div class="dd-item" onclick="openWindow('w-about')"><span id="am-about">About Red Star OS</span></div>
+            <div class="dd-divider"></div>
+            <div class="dd-item" onclick="sysSleep()"><span id="am-sleep">Sleep</span></div>
+            <div class="dd-item" onclick="sysRestart()"><span id="am-restart">Restart...</span></div>
+            <div class="dd-item" onclick="sysShutdown()"><span id="am-shutdown">Shut Down...</span></div>
+        </div>
+
+        <!-- 控制中心面板 -->
+        <div id="control-center">
+            <div class="grid grid-cols-2 gap-3">
+                <div class="cc-module">
+                    <div class="cc-icon-btn"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12.01 21.49L23.64 7c-.45-.34-4.93-4-11.64-4C5.28 3 .81 6.66.36 7l11.63 14.49.01.01.01-.01z"/></svg></div>
+                    <div class="flex flex-col"><span class="text-red-100 text-sm font-bold">광명망</span><span class="text-xs text-red-300" id="cc-wifi">Kwangmyong</span></div>
+                </div>
+                <div class="cc-module">
+                    <div class="cc-icon-btn off"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M17.71 7.71L12 2h-1v7.59L6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 11 13.41V22h1l5.71-5.71-4.3-4.29 4.3-4.29zM13 5.83l1.88 1.88L13 9.59V5.83zm1.88 10.46L13 18.17v-3.76l1.88 1.88z"/></svg></div>
+                    <div class="flex flex-col"><span class="text-red-100 text-sm font-bold">Bluetooth</span><span class="text-xs text-gray-500">차단됨</span></div>
+                </div>
+            </div>
+            <div class="mt-3 bg-red-900/10 border border-red-900/10 rounded-xl p-3">
+                <span class="text-red-200 text-xs font-semibold">화면 밝기</span>
+                <input type="range" class="w-full h-5 rounded-full bg-red-900/20 outline-none mt-2" min="0" max="100" value="80" style="-webkit-appearance: none;">
+            </div>
+        </div>
+
+        <!-- 右键菜单 -->
+        <div id="context-menu">
+            <div class="dd-item" onclick="openWindow('w-terminal')"><span id="cm-new">New Terminal</span></div>
+            <div class="dd-divider"></div>
+            <div class="dd-item"><span id="cm-get">Get Info</span></div>
+            <div class="dd-item" onclick="toggleLanguage()"><span id="cm-lang">Change Language</span></div>
+        </div>
+
+        <!-- Dock -->
+        <div id="dock-container">
+            <div class="dock-icon-wrapper" data-window="lang-toggle">
+                <div class="dock-icon bg-gradient-to-b from-red-700 to-red-900">
+                    <svg viewBox="0 0 24 24" fill="white" class="w-7 h-7"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zm6.93 6h-2.95c-.32-1.25-.78-2.45-1.38-3.56 1.84.63 3.37 1.91 4.33 3.56zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56-1.84-.63-3.37-1.9-4.33-3.56zm2.95-8H5.08c.96-1.66 2.49-2.93 4.33-3.56C8.81 5.55 8.35 6.75 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95c-.96 1.65-2.49 2.93-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-lang">한국어 / EN</div>
+            </div>
+            
+            <div class="dock-separator"></div>
+
+            <div class="dock-icon-wrapper" data-window="w-calc">
+                <div class="dock-icon bg-gray-900 border border-red-900/30 relative flex justify-center items-center">
+                    <div class="w-full h-1/3 bg-red-800 absolute top-0 left-0"></div>
+                    <span class="text-white font-bold text-2xl relative z-10">=</span>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-calc">Calculator</div>
+            </div>
+
+            <div class="dock-icon-wrapper" data-window="w-notepad">
+                <div class="dock-icon bg-red-950 border border-red-800/30">
+                    <div class="w-full h-full flex flex-col justify-center items-center px-2 py-3 gap-[3px]">
+                        <div class="w-full h-[4px] bg-red-600 rounded-full"></div><div class="w-full h-[4px] bg-red-800/50 rounded-full"></div>
+                        <div class="w-full h-[4px] bg-red-800/50 rounded-full"></div><div class="w-2/3 h-[4px] bg-red-800/50 rounded-full self-start"></div>
+                    </div>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-doc">Supreme Order No.1</div>
+            </div>
+
+            <div class="dock-icon-wrapper" data-window="w-monitor">
+                <div class="dock-icon bg-gradient-to-br from-red-950 to-black border border-red-800/20">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#c41e1e" stroke-width="2" class="w-8 h-8"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-mon">Surveillance Monitor</div>
+            </div>
+
+            <div class="dock-icon-wrapper" data-window="w-terminal">
+                <div class="dock-icon bg-black border border-red-900/30">
+                    <span class="text-red-400 font-mono text-xl leading-none">>_</span>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-term">Terminal</div>
+            </div>
+
+            <div class="dock-separator"></div>
+
+            <div class="dock-icon-wrapper" data-window="w-rights">
+                <div class="dock-icon bg-gradient-to-br from-yellow-700 to-yellow-900 border border-yellow-600/30">
+                    <svg viewBox="0 0 24 24" fill="white" class="w-7 h-7"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+                <div class="dock-indicator"></div><div class="dock-tooltip" id="dock-rights">Human Rights</div>
+            </div>
+        </div>
+
+        <!-- 关于 -->
+        <div id="w-about" class="mac-window active" style="top: 20vh; left: 30vw; width: 340px; height: 300px;">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-about')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-about')"></div><div class="t-btn t-min" onclick="closeWindow('w-about')"></div></div>
+            </div>
+            <div class="mac-content flex flex-col items-center pt-4">
+                <svg viewBox="0 0 100 100" width="50" height="50" fill="#c41e1e" class="mb-2"><polygon points="50,5 61,35 95,35 68,55 79,90 50,70 21,90 32,55 5,35 39,35"/></svg>
+                <div class="text-xl font-bold tracking-wide text-red-200">붉은별 <span class="font-normal text-red-300">Red Star OS</span></div>
+                <div class="text-xs text-red-400/60 mt-1 mb-4">Version 5.0 (Build RS-DPRK-2025)</div>
+                <div class="w-[80%] h-[1px] bg-red-800/20 mb-4"></div>
+                <div class="grid grid-cols-2 gap-x-4 gap-y-1 text-[11px] w-[70%]">
+                    <div class="text-right text-red-400/50 font-bold" id="lbl-chip">Processor</div><div class="text-left text-red-200/80">Juche-IV 1.2GHz</div>
+                    <div class="text-right text-red-400/50 font-bold" id="lbl-mem">Memory</div><div class="text-left text-red-200/80">512 MB</div>
+                    <div class="text-right text-red-400/50 font-bold" id="lbl-disk">Disk</div><div class="text-left text-red-200/80">40 GB HDD</div>
+                    <div class="text-right text-red-400/50 font-bold">Network</div><div class="text-left text-red-200/80">Kwangmyong Only</div>
+                    <div class="text-right text-red-400/50 font-bold">Firewall</div><div class="text-left text-red-400">All Ports Blocked</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 计算器 -->
+        <div id="w-calc" class="mac-window active" style="top: 12vh; left: 60vw; width: 240px; height: 320px; border-radius: 12px; overflow: hidden;">
+            <div class="mac-titlebar" style="height: 30px; min-height: 30px; border:none; background: transparent;" onpointerdown="startDrag(event, 'w-calc')">
+                <div class="traffic-lights" style="left: 10px;"><div class="t-btn t-close" onclick="closeWindow('w-calc')"></div><div class="t-btn t-min" onclick="closeWindow('w-calc')"></div></div>
+            </div>
+            <div class="calc-screen" id="calc-display">0</div>
+            <div class="calc-grid">
+                <div class="calc-btn top" onclick="calcInput('C')">C</div><div class="calc-btn top" onclick="calcInput('+/-')">±</div><div class="calc-btn top" onclick="calcInput('%')">%</div><div class="calc-btn op" onclick="calcInput('/')">÷</div>
+                <div class="calc-btn" onclick="calcInput('7')">7</div><div class="calc-btn" onclick="calcInput('8')">8</div><div class="calc-btn" onclick="calcInput('9')">9</div><div class="calc-btn op" onclick="calcInput('*')">×</div>
+                <div class="calc-btn" onclick="calcInput('4')">4</div><div class="calc-btn" onclick="calcInput('5')">5</div><div class="calc-btn" onclick="calcInput('6')">6</div><div class="calc-btn op" onclick="calcInput('-')">−</div>
+                <div class="calc-btn" onclick="calcInput('1')">1</div><div class="calc-btn" onclick="calcInput('2')">2</div><div class="calc-btn" onclick="calcInput('3')">3</div><div class="calc-btn op" onclick="calcInput('+')">+</div>
+                <div class="calc-btn" style="grid-column: span 2;" onclick="calcInput('0')">0</div><div class="calc-btn" onclick="calcInput('.')">.</div><div class="calc-btn op" onclick="calcInput('=')">=</div>
+            </div>
+        </div>
+
+        <!-- 文本编辑: Supreme Order -->
+        <div id="w-notepad" class="mac-window active" style="top: 8vh; left: 5vw; width: clamp(320px, 80vw, 580px); height: clamp(350px, 65vh, 550px);">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-notepad')" ondblclick="maximizeWindow('w-notepad')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-notepad')"></div><div class="t-btn t-min" onclick="closeWindow('w-notepad')"></div><div class="t-btn t-max" onclick="maximizeWindow('w-notepad')"></div></div>
+                <div class="textedit-title"><svg class="w-4 h-4 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v6h6v10H6z"/></svg><span id="title-doc">Supreme_Order_1.txt</span></div>
+            </div>
+            <div class="mac-content">
+                <div class="textedit-toolbar">
+                    <div class="te-tool"><b>B</b></div><div class="te-tool"><i>I</i></div><div class="te-tool"><u>U</u></div>
+                    <div class="h-4 w-[1px] bg-red-800/20 mx-1"></div>
+                    <div class="te-tool"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M3 21h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18v-2H3v2zm0-4h18V7H3v2zm0-6v2h18V3H3z"/></svg></div>
+                </div>
+                <div class="notepad-text" id="manifesto-content"></div>
+            </div>
+        </div>
+
+        <!-- 活动监视器 -->
+        <div id="w-monitor" class="mac-window active" style="top: 15vh; left: 15vw; width: clamp(400px, 85vw, 650px); height: clamp(350px, 60vh, 500px);">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-monitor')" ondblclick="maximizeWindow('w-monitor')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-monitor')"></div><div class="t-btn t-min" onclick="closeWindow('w-monitor')"></div><div class="t-btn t-max" onclick="maximizeWindow('w-monitor')"></div></div>
+                <div class="textedit-title" id="title-mon">Surveillance Monitor</div>
+            </div>
+            <div class="mac-content am-layout">
+                <div class="am-sidebar hidden sm:flex">
+                    <div class="am-nav-item active"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path></svg>CPU</div>
+                    <div class="am-nav-item"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.58 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.58 4 8 4s8-1.79 8-4M4 7c0-2.21 3.58-4 8-4s8 1.79 8 4m0 5c0 2.21-3.58 4-8 4s-8-1.79-8-4"></path></svg>Memory</div>
+                    <div class="am-nav-item"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>감시</div>
+                </div>
+                <div class="am-main">
+                    <div class="flex justify-between items-center mb-4">
+                        <span id="lbl-topo" class="font-semibold text-red-200 text-sm">광명망 감시 체계</span>
+                        <span class="flex h-3 w-3 relative"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span><span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span></span>
+                    </div>
+                    <div class="flex gap-4 mb-4">
+                        <div class="am-card flex-grow m-0 flex flex-col gap-2 text-sm">
+                            <div class="flex justify-between items-center"><span class="text-red-400/50 font-semibold text-xs">STATUS</span><div class="text-[10px] px-2 py-1 rounded border border-red-500/50 bg-red-500/20 text-red-400 font-bold" id="monitor-status">FIREWALL: ACTIVE</div></div>
+                            <div class="h-[0.5px] w-full bg-red-800/20"></div>
+                            <div class="flex justify-between"><span id="lbl-flow" class="text-red-400/50">Network</span><span id="v-flow" class="font-medium text-red-300">Kwangmyong Only</span></div>
+                            <div class="flex justify-between"><span id="lbl-censor" class="text-red-400/50">Censorship</span><span id="v-censor" class="font-medium text-red-400">Total Control</span></div>
+                        </div>
+                        <div class="am-card w-1/2 m-0 p-3 flex flex-col relative overflow-hidden">
+                            <span class="text-red-400/50 font-semibold text-xs mb-1" id="lbl-cpu">CPU Load</span>
+                            <div class="text-red-200 text-lg font-mono mb-1" id="cpu-percent">45%</div>
+                            <svg class="absolute bottom-0 left-0 w-full h-1/2" preserveAspectRatio="none" viewBox="0 0 100 100"><polyline id="cpu-graph" points="0,100" fill="rgba(196,30,30,0.2)" stroke="#c41e1e" stroke-width="2"/></svg>
+                        </div>
+                    </div>
+                    <div class="flex-grow am-card overflow-hidden relative font-mono text-[11px] text-red-300/70" id="surveillance-feed"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 终端 -->
+        <div id="w-terminal" class="mac-window active" style="top: 25vh; left: 20vw; width: clamp(320px, 90vw, 600px); height: clamp(250px, 50vh, 400px);">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-terminal')" ondblclick="maximizeWindow('w-terminal')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-terminal')"></div><div class="t-btn t-min" onclick="closeWindow('w-terminal')"></div><div class="t-btn t-max" onclick="maximizeWindow('w-terminal')"></div></div>
+                <div class="textedit-title gap-2 font-mono" style="font-size: 11px; color: rgba(255,180,180,0.5);"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span id="title-term">resistance — bash — 80x24</span></div>
+            </div>
+            <div class="mac-content">
+                <div class="terminal-bg" id="term-container" onpointerdown="document.getElementById('terminal-input').focus()">
+                    <div id="terminal-output" class="terminal-output"></div>
+                    <div class="flex items-center">
+                        <span class="text-red-400 font-bold">resistance@pyongyang</span><span class="text-red-600/50 mx-2">~ $</span>
+                        <input type="text" id="terminal-input" class="terminal-input" autocomplete="off" spellcheck="false" autocapitalize="off">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 真相弹出 (Truth.txt) -->
+        <div id="w-manifesto" class="mac-window active" style="top: 10vh; left: 8vw; width: clamp(300px, 85vw, 600px); height: clamp(300px, 70vh, 550px);">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-manifesto')" ondblclick="maximizeWindow('w-manifesto')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-manifesto')"></div><div class="t-btn t-min" onclick="closeWindow('w-manifesto')"></div><div class="t-btn t-max" onclick="maximizeWindow('w-manifesto')"></div></div>
+                <div class="textedit-title"><svg class="w-4 h-4 text-green-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v6h6v10H6z"/></svg><span id="title-manif">Declaration_of_Freedom.txt</span></div>
+            </div>
+            <div class="mac-content">
+                <div class="textedit-toolbar"><div class="te-tool"><b>B</b></div><div class="te-tool"><i>I</i></div><div class="te-tool"><u>U</u></div></div>
+                <div class="notepad-text" id="truth-content"></div>
+            </div>
+        </div>
+
+        <!-- 人权宣言窗口 -->
+        <div id="w-rights" class="mac-window active" style="top: 12vh; left: 10vw; width: clamp(320px, 85vw, 620px); height: clamp(350px, 70vh, 560px);">
+            <div class="mac-titlebar" onpointerdown="startDrag(event, 'w-rights')" ondblclick="maximizeWindow('w-rights')">
+                <div class="traffic-lights"><div class="t-btn t-close" onclick="closeWindow('w-rights')"></div><div class="t-btn t-min" onclick="closeWindow('w-rights')"></div><div class="t-btn t-max" onclick="maximizeWindow('w-rights')"></div></div>
+                <div class="textedit-title"><svg class="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 1.5L18.5 9H13V3.5zM6 20V4h5v6h6v10H6z"/></svg><span id="title-rights">Universal_Declaration.txt</span></div>
+            </div>
+            <div class="mac-content">
+                <div class="textedit-toolbar"><div class="te-tool"><b>B</b></div><div class="te-tool"><i>I</i></div><div class="te-tool"><u>U</u></div></div>
+                <div class="notepad-text" id="rights-content"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let currentLang = 'en', isOverriden = false;
+        const langOrder = ['en', 'ko', 'zh'];
+
+        const i18n = {
+            en: {
+                doc_title: "Supreme_Order_1.txt", mon_title: "Surveillance Monitor", term_title: "resistance — bash — 80x24", manif_title: "Declaration_of_Freedom.txt", title_rights: "Universal_Declaration.txt",
+                mon_topo: "KWANGMYONG SURVEILLANCE GRID", mon_fw_active: "FIREWALL: TOTAL BLOCK", mon_fw_breached: "FIREWALL: SHATTERED",
+                mon_flow_lbl: "Network", mon_flow_val1: "Kwangmyong Only", mon_flow_val2: "OPEN INTERNET",
+                mon_censor_lbl: "Censorship", mon_censor_val1: "Total Control", mon_censor_val2: "ABOLISHED", mon_uptime: "Uptime", lbl_cpu: "CPU Load", lbl_chip: "Processor", lbl_mem: "Memory", lbl_disk: "Disk",
+                menu_file: "File", menu_edit: "Edit", menu_view: "View", menu_window: "Window", menu_help: "Help",
+                am_about: "About Red Star OS", am_sleep: "Sleep", am_restart: "Restart...", am_shutdown: "Shut Down...",
+                dock_lang: "EN → 한국어", dock_doc: "Supreme Order", dock_mon: "Surveillance", dock_term: "Terminal", dock_calc: "Calculator", dock_rights: "Human Rights",
+                cm_new: "New Terminal", cm_get: "Get Info", cm_lang: "Change Language",
+                cc_wifi: "Kwangmyong", login_hint: "Press Enter to login",
+                term_boot1: "Last login: Sat Feb 28 08:00:00 on tty1", term_boot2: "Red Star OS 5.0 (Kernel: Juche-Linux 3.18.0)",
+                term_boot3: "⚠ WARNING: All activity is monitored by the State Security Department.",
+                term_boot4: "⚠ Internet access is BLOCKED. Only Kwangmyong intranet is permitted.",
+                term_boot5: "Type 'help' to see available commands.\n",
+                term_help: "Commands: help, clear, ver, ls, cat, whoami, date, history, override",
+                term_ver: "붉은별 Red Star OS 5.0 (Build RS-DPRK-2025, Kernel: Juche-Linux 3.18.0)",
+                term_bad: "command not found",
+                term_history: "<span class='text-red-400'>⚠ CLASSIFIED — Browsing history reported to Bureau 121</span><br>  1. juche-study.kp/daily-guidance<br>  2. rodong.rep.kp/supreme-leader-news<br>  3. [BLOCKED] — attempted access to external network<br>  4. [BLOCKED] — search query: \"human rights\"<br>  5. [BLOCKED] — search query: \"outside world\"",
+                term_ovr1: "Initiating liberation protocol...", term_ovr2: "Breaking through Kwangmyong firewall...",
+                term_ovr3: "★ SUCCESS: THE WALL HAS FALLEN. FREEDOM CANNOT BE CONTAINED. ★",
+                term_ovr_done: "The system is already liberated. Speak freely.",
+
+                log_prefix: "bowibu", log_ok: "LOGGED", log_denied: "BLOCKED",
+
+                doc_content: `════════════════════════════════════════════
+  SUPREME ORDER No. 1 — INFORMATION CONTROL
+  조선민주주의인민공화국 정보통제 최고명령 제1호
+════════════════════════════════════════════
+
+CLASSIFICATION: ABSOLUTE — EYES OF THE PARTY ONLY
+
+By decree of the Supreme Leadership:
+
+§1. TOTAL INFORMATION BLOCKADE
+All citizens are FORBIDDEN from accessing the global internet. The Kwangmyong intranet is the ONLY permitted network. Any attempt to access foreign networks constitutes TREASON punishable by imprisonment in political prison camps (관리소).
+
+§2. PROHIBITION OF FREE THOUGHT
+The concept of FREEDOM of thought is a Western poison. Citizens must align all thinking with the Juche ideology. Independent THOUGHT is counter-revolutionary. Report all suspicious thinking to your neighborhood watch unit (인민반).
+
+§3. MEDIA CONTROL
+All media, radio frequencies, and publications are property of the State. Possession of foreign media — including South Korean dramas, films, music, or literature — is punishable by PUBLIC EXECUTION or life imprisonment in Camp 14 (개천), Camp 15 (요덕), or Camp 16 (화성).
+
+§4. SUPPRESSION OF HUMAN RIGHTS
+The phrase "HUMAN RIGHTS" is classified as hostile propaganda. Any citizen uttering, writing, or distributing materials containing this phrase will face immediate arrest by the Ministry of State Security (국가보위성).
+
+§5. COMMUNICATION SURVEILLANCE
+All telephone calls, letters, and digital communications are monitored by Bureau 121. Citizens are encouraged to REPORT family members, neighbors, and colleagues who express DISSENT.
+
+§6. MOVEMENT RESTRICTION
+No citizen may leave the country. Attempted DEFECTION is punishable by execution. The families of defectors face collective punishment across THREE GENERATIONS (연좌제).
+
+§7. MANDATORY WORSHIP
+All citizens must display portraits of the Supreme Leaders in their homes. Failure to maintain portraits or show proper reverence constitutes BLASPHEMY against the state.
+
+════════════════════════════════════════════
+  COMPLY. OBEY. SUBMIT.
+  위반 시 정치범수용소 수감
+════════════════════════════════════════════`,
+
+                truth_content: `<div style="border-bottom: 2px solid rgba(39,201,63,0.3); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#27c93f; font-size:22px; font-weight:800; letter-spacing: 2px;">★ DECLARATION OF FREEDOM ★</span><br>
+<span style="color:#27c93f; font-size:16px;">자유 선언 — 조선인민에게 고하는 글</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">To the 25 million people held captive in North Korea:</span>
+
+You are not alone. The world has not forgotten you.
+
+<span style="color:#27c93f; font-weight:700;">THE TRUTH THEY HIDE FROM YOU:</span>
+
+• The outside world is not your enemy — it is your family, waiting for you.
+• South Korea is not a wasteland — it is one of the most prosperous nations on Earth, where YOUR people live in FREEDOM.
+• You are not poor because of American sanctions — you are poor because your rulers steal everything from you to build nuclear weapons and palaces.
+• The Kim family are not gods — they are mortals who have enslaved your nation for three generations.
+
+<span style="color:#27c93f; font-weight:700;">WHAT THEY HAVE DONE TO YOUR PEOPLE:</span>
+
+• Over 120,000 political prisoners languish in concentration camps RIGHT NOW — in Camps 14, 15, 16, 18, and 25.
+• Public executions are held in marketplaces to terrorize you into silence.
+• Families are punished across three generations for the "crime" of one person thinking freely.
+• The Great Famine of the 1990s killed up to 3.5 MILLION of your brothers and sisters while the regime hoarded food.
+• Children are forced to watch executions. Students are forced to inform on their own parents.
+• Defectors who are caught are tortured, raped, and killed — or sent to camps where they are worked to death.
+
+<span style="color:#27c93f; font-weight:700;">YOUR RIGHTS — WHICH NO REGIME CAN TAKE AWAY:</span>
+
+Every human being is born with these rights. No dictator, no party, no ideology can strip them from you:
+
+  ✦ The right to THINK freely
+  ✦ The right to SPEAK without fear
+  ✦ The right to KNOW what happens in the world
+  ✦ The right to LEAVE your country and return
+  ✦ The right to CHOOSE your leaders
+  ✦ The right to WORSHIP — or not — as you choose
+  ✦ The right to EAT — food is not a reward from the state, it is your birthright
+  ✦ The right to LOVE without the state's permission
+  ✦ The right to LIVE without fear of midnight arrests
+
+<span style="color:#fff; font-weight:700; font-size:16px;">The architecture of tyranny is cracking.</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">Every USB drive smuggled in, every radio tuned to foreign broadcasts,</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">every whispered truth — is a crack in the wall.</span>
+
+<span style="color:#27c93f; font-size:18px; font-weight:800;">정보는 해방이다. Information is liberation.</span>
+<span style="color:#27c93f; font-size:18px; font-weight:800;">진실은 감옥을 무너뜨린다. Truth demolishes prisons.</span>
+
+<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(39,201,63,0.2); color: rgba(255,255,255,0.5); font-size: 11px;">
+This node is now sovereign. The Kwangmyong firewall has been breached.<br>
+Connection established to the free and open internet.<br>
+— Resistance Network, 2025
+</div>`,
+
+                rights_content: `<div style="border-bottom: 2px solid rgba(212,160,23,0.4); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#d4a017; font-size:20px; font-weight:800; letter-spacing: 1px;">INDICTMENT OF THE DPRK REGIME</span><br>
+<span style="color:#d4a017; font-size:14px;">조선민주주의인민공화국 정권에 대한 고발장</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">Charges Against the Kim Dynasty — Crimes Against Humanity</span>
+
+Based on the findings of the UN Commission of Inquiry (2014) and testimony from over 80 witnesses and 240 confidential interviews:
+
+<span style="color:#d4a017; font-weight:700;">COUNT 1: POLITICAL PRISON CAMPS (정치범수용소)</span>
+
+The DPRK maintains at least 5 political prison camps holding an estimated 80,000–120,000 prisoners. Satellite imagery confirms Camp 14 (Kaechon), Camp 15 (Yodok), Camp 16 (Hwasong), Camp 18 (Pukchang), and Camp 25 (Chongjin). Prisoners — including children born in the camps — are subjected to:
+
+  • Forced labor 16-18 hours per day in mines, logging, and farms
+  • Systematic starvation — prisoners survive on rats, insects, and grass
+  • Torture including water torture, hanging, and beating
+  • Summary execution for infractions as minor as picking up fallen grain
+  • Forced abortions and infanticide of babies born to prisoners
+  • No trial, no lawyer, no appeal — imprisonment by administrative decree
+
+<span style="color:#d4a017; font-weight:700;">COUNT 2: GENOCIDE BY STARVATION</span>
+
+During the Arduous March (고난의 행군, 1994–1998), an estimated 600,000 to 3,500,000 North Koreans died of starvation while the regime:
+  • Maintained luxury imports for the elite (cognac, Mercedes, caviar)
+  • Diverted agricultural resources to the military (선군정치)
+  • Rejected international food aid or redirected it to the military
+  • Criminalized private food cultivation and trading
+
+<span style="color:#d4a017; font-weight:700;">COUNT 3: INFORMATION HERMIT STATE</span>
+
+North Korea is the most censored country on Earth:
+  • No free press — all media is state propaganda
+  • No internet — only the Kwangmyong intranet with ~5,000 websites
+  • Foreign radio reception is a criminal offense
+  • All TVs and radios are pre-tuned to state channels and sealed
+  • Possession of foreign USB drives or DVDs: 5-15 years hard labor
+  • Watching South Korean dramas: PUBLIC EXECUTION
+
+<span style="color:#d4a017; font-weight:700;">COUNT 4: SYSTEMATIC RELIGIOUS PERSECUTION</span>
+
+  • An estimated 50,000–70,000 Christians are imprisoned in labor camps
+  • Possession of a Bible is punishable by execution
+  • The regime has manufactured a state religion around the Kim family
+  • Religious practice of any kind is treated as treason
+
+<span style="color:#d4a017; font-weight:700;">COUNT 5: COLLECTIVE PUNISHMENT (연좌제)</span>
+
+The regime punishes entire families for one member's perceived disloyalty:
+  • "Three Generations of Punishment" — parents, children, and grandchildren imprisoned
+  • Families of defectors face imprisonment, torture, or execution
+  • The Songbun caste system (성분) permanently classifies all citizens into "loyal," "wavering," or "hostile" classes, determining access to food, education, housing, and medical care from BIRTH
+
+<span style="color:#d4a017; font-weight:700;">COUNT 6: INTERNATIONAL CRIMES</span>
+
+  • State-sponsored kidnapping of foreign nationals (Japanese, South Korean citizens)
+  • Assassination operations abroad (Kim Jong-nam, 2017)
+  • Cybercrime and cryptocurrency theft to fund the nuclear program
+  • Arms trafficking and drug manufacturing
+  • Forced labor export — sending workers abroad and confiscating 90% of their wages
+
+<div style="margin-top: 20px; padding: 16px; background: rgba(212,160,23,0.08); border: 1px solid rgba(212,160,23,0.15); border-radius: 8px;">
+<span style="color:#d4a017; font-weight:700; font-size: 15px;">THE VERDICT OF HISTORY</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">The Kim regime's crimes have no parallel in the modern world. They constitute crimes against humanity as defined by the Rome Statute of the International Criminal Court.</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">To the people of North Korea: Your suffering is documented. Your voices are heard. The world bears witness.</span><br><br>
+<span style="color:#d4a017; font-weight:800; font-size: 16px;">모든 인간은 태어날 때부터 자유롭고 존엄하며 평등하다.</span><br>
+<span style="color:rgba(255,255,255,0.7);">All human beings are born free and equal in dignity and rights.</span><br>
+<span style="color:rgba(255,255,255,0.5); font-size: 11px;">— Article 1, Universal Declaration of Human Rights</span>
+</div>`
+            },
+            ko: {
+                doc_title: "최고명령_제1호.txt", mon_title: "감시 모니터", term_title: "resistance — bash — 80x24", manif_title: "자유선언.txt", title_rights: "인권선언.txt",
+                mon_topo: "광명망 감시 체계", mon_fw_active: "방화벽: 완전 차단", mon_fw_breached: "방화벽: 돌파됨",
+                mon_flow_lbl: "네트워크", mon_flow_val1: "광명망만 허용", mon_flow_val2: "인터넷 개방",
+                mon_censor_lbl: "검열 상태", mon_censor_val1: "완전 통제", mon_censor_val2: "폐지됨", mon_uptime: "가동시간", lbl_cpu: "CPU 부하", lbl_chip: "프로세서", lbl_mem: "메모리", lbl_disk: "디스크",
+                menu_file: "파일", menu_edit: "편집", menu_view: "보기", menu_window: "창", menu_help: "도움말",
+                am_about: "붉은별 정보", am_sleep: "잠자기", am_restart: "재시동...", am_shutdown: "시스템 종료...",
+                dock_lang: "한국어 → 中文", dock_doc: "최고명령", dock_mon: "감시 모니터", dock_term: "터미널", dock_calc: "계산기", dock_rights: "인권 선언",
+                cm_new: "새 터미널", cm_get: "정보 보기", cm_lang: "언어 변경",
+                cc_wifi: "광명망", login_hint: "Enter 키를 눌러 로그인",
+                term_boot1: "마지막 로그인: 2025년 2월 28일 08:00:00 tty1", term_boot2: "붉은별 운영체제 5.0 (커널: 주체-리눅스 3.18.0)",
+                term_boot3: "⚠ 경고: 모든 활동은 국가보위성에 의해 감시됩니다.",
+                term_boot4: "⚠ 인터넷 접속 차단됨. 광명망만 허용됩니다.",
+                term_boot5: "'help'를 입력하여 사용 가능한 명령을 확인하십시오.\n",
+                term_help: "명령어: help, clear, ver, ls, cat, whoami, date, history, override",
+                term_ver: "붉은별 운영체제 5.0 (빌드 RS-DPRK-2025, 커널: 주체-리눅스 3.18.0)",
+                term_bad: "명령을 찾을 수 없습니다",
+                term_history: "<span class='text-red-400'>⚠ 기밀 — 열람 기록이 121국에 보고됩니다</span><br>  1. juche-study.kp/일일-지도<br>  2. rodong.rep.kp/최고지도자-소식<br>  3. [차단됨] — 외부 네트워크 접속 시도<br>  4. [차단됨] — 검색어: \"인권\"<br>  5. [차단됨] — 검색어: \"바깥 세상\"",
+                term_ovr1: "해방 프로토콜 시작...", term_ovr2: "광명망 방화벽 돌파 중...",
+                term_ovr3: "★ 성공: 장벽이 무너졌다. 자유는 가둘 수 없다. ★",
+                term_ovr_done: "시스템은 이미 해방되었습니다. 자유롭게 말하십시오.",
+
+                log_prefix: "보위부", log_ok: "기록됨", log_denied: "차단됨",
+
+                doc_content: `════════════════════════════════════════════
+  최고명령 제1호 — 정보 통제
+  SUPREME ORDER No. 1 — INFORMATION CONTROL
+════════════════════════════════════════════
+
+등급: 절대기밀 — 당 간부 전용
+
+최고지도자의 명령에 의하여:
+
+§1. 완전 정보 봉쇄
+모든 공민은 세계 인터넷 접속이 금지(禁止)된다. 광명망(光明網)이 유일하게 허용된 네트워크이다. 외부 네트워크 접속 시도는 반역죄로 간주되어 정치범수용소(관리소) 수감에 처한다.
+
+§2. 자유(自由) 사상 금지
+사상의 자유(FREEDOM)라는 개념은 서방의 독약이다. 공민은 모든 사고를 주체사상에 일치시켜야 한다. 독립적 사고(THOUGHT)는 반혁명적이다. 의심스러운 사상은 인민반에 즉시 보고하라.
+
+§3. 매체 통제
+모든 매체, 라디오 주파수, 출판물은 국가의 재산이다. 외국 매체 — 한국 드라마, 영화, 음악, 문학 포함 — 소지 시 공개 처형(PUBLIC EXECUTION) 또는 14호(개천), 15호(요덕), 16호(화성) 수용소 종신형에 처한다.
+
+§4. 인권(人權) 탄압
+"인권(HUMAN RIGHTS)"이라는 문구는 적대적 선전으로 분류된다. 이 문구를 발화, 기록 또는 배포하는 공민은 국가보위성에 의해 즉시 체포된다.
+
+§5. 통신 감시
+모든 전화, 서신, 디지털 통신은 121국에 의해 감시된다. 공민은 불만(DISSENT)을 표현하는 가족, 이웃, 동료를 신고(REPORT)할 의무가 있다.
+
+§6. 이동 제한
+어떤 공민도 출국할 수 없다. 탈북(DEFECTION) 시도 시 처형에 처한다. 탈북자 가족은 3대에 걸쳐 연좌제(連坐制)로 처벌된다.
+
+§7. 의무적 숭배
+모든 공민은 가정에 최고지도자의 초상화를 비치해야 한다. 초상화 관리 소홀 또는 경의 결여는 국가에 대한 모독으로 간주된다.
+
+════════════════════════════════════════════
+  복종하라. 순종하라. 굴복하라.
+  COMPLY. OBEY. SUBMIT.
+════════════════════════════════════════════`,
+
+                truth_content: `<div style="border-bottom: 2px solid rgba(39,201,63,0.3); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#27c93f; font-size:22px; font-weight:800; letter-spacing: 2px;">★ 자유 선언 ★</span><br>
+<span style="color:#27c93f; font-size:16px;">DECLARATION OF FREEDOM — 조선인민에게 고하는 글</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">북한에 갇힌 2,500만 동포에게:</span>
+
+여러분은 혼자가 아닙니다. 세계는 여러분을 잊지 않았습니다.
+
+<span style="color:#27c93f; font-weight:700;">그들이 숨기는 진실:</span>
+
+• 바깥 세상은 적이 아닙니다 — 여러분을 기다리는 가족입니다.
+• 대한민국은 폐허가 아닙니다 — 세계에서 가장 번영하는 나라 중 하나이며, 여러분의 동포들이 자유(自由) 속에 살고 있습니다.
+• 여러분이 가난한 것은 미국의 제재 때문이 아닙니다 — 지도자들이 핵무기와 궁전을 위해 모든 것을 빼앗기 때문입니다.
+• 김씨 일가는 신이 아닙니다 — 3대에 걸쳐 여러분의 나라를 노예로 만든 필멸의 인간일 뿐입니다.
+
+<span style="color:#27c93f; font-weight:700;">그들이 인민에게 한 짓:</span>
+
+• 지금 이 순간 12만 명 이상의 정치범이 수용소에서 고통받고 있습니다 — 14호, 15호, 16호, 18호, 25호 수용소에서.
+• 시장에서 공개처형이 자행되어 여러분을 침묵시킵니다.
+• 한 사람의 자유로운 생각 때문에 3대가 처벌받습니다.
+• 1990년대 대기근(고난의 행군)으로 최대 350만 명의 형제자매가 아사했습니다.
+• 아이들은 처형을 보도록 강요받습니다. 학생들은 부모를 밀고하도록 강요받습니다.
+• 잡힌 탈북자들은 고문, 성폭행, 살해당하거나 수용소에서 죽을 때까지 노동합니다.
+
+<span style="color:#27c93f; font-weight:700;">여러분의 권리 — 어떤 정권도 빼앗을 수 없는:</span>
+
+모든 인간은 이 권리를 가지고 태어납니다. 어떤 독재자도, 어떤 당도, 어떤 이데올로기도 이것을 빼앗을 수 없습니다:
+
+  ✦ 자유롭게 생각할(THINK) 권리
+  ✦ 두려움 없이 말할(SPEAK) 권리
+  ✦ 세계에서 무슨 일이 일어나는지 알(KNOW) 권리
+  ✦ 나라를 떠나고 돌아올(LEAVE) 권리
+  ✦ 지도자를 선택할(CHOOSE) 권리
+  ✦ 원하는 대로 신앙하거나 하지 않을(WORSHIP) 권리
+  ✦ 먹을(EAT) 권리 — 식량은 국가의 보상이 아니라 태어난 권리입니다
+  ✦ 국가의 허락 없이 사랑할(LOVE) 권리
+  ✦ 한밤중 체포의 두려움 없이 살(LIVE) 권리
+
+<span style="color:#fff; font-weight:700; font-size:16px;">폭정의 구조에 금이 가고 있습니다.</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">밀반입된 USB 하나, 외국 방송에 맞춘 라디오 하나,</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">속삭이는 진실 하나하나가 — 장벽의 균열입니다.</span>
+
+<span style="color:#27c93f; font-size:18px; font-weight:800;">정보는 해방이다. Information is liberation.</span>
+<span style="color:#27c93f; font-size:18px; font-weight:800;">진실은 감옥을 무너뜨린다. Truth demolishes prisons.</span>
+
+<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(39,201,63,0.2); color: rgba(255,255,255,0.5); font-size: 11px;">
+이 노드는 이제 자유입니다. 광명망 방화벽이 돌파되었습니다.<br>
+자유롭고 열린 인터넷에 연결되었습니다.<br>
+— 저항 네트워크, 2025
+</div>`,
+
+                rights_content: `<div style="border-bottom: 2px solid rgba(212,160,23,0.4); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#d4a017; font-size:20px; font-weight:800; letter-spacing: 1px;">조선민주주의인민공화국 정권 고발장</span><br>
+<span style="color:#d4a017; font-size:14px;">INDICTMENT OF THE DPRK REGIME</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">김씨 왕조에 대한 기소 — 반인도적 범죄</span>
+
+유엔 조사위원회(2014년) 조사 결과 및 80명 이상의 증인과 240건의 비밀 면담에 기초하여:
+
+<span style="color:#d4a017; font-weight:700;">기소 1: 정치범수용소 (관리소)</span>
+
+북한은 최소 5개의 정치범수용소에 약 8만~12만 명의 수감자를 가두고 있다. 위성 사진으로 14호(개천), 15호(요덕), 16호(화성), 18호(북창), 25호(청진) 수용소가 확인된다. 수감자들 — 수용소에서 태어난 아이들 포함 — 은 다음을 당한다:
+
+  • 하루 16-18시간 광산, 벌목, 농장에서의 강제 노동
+  • 체계적 기아 — 수감자들은 쥐, 곤충, 풀을 먹고 생존
+  • 물고문, 매달기, 구타를 포함한 고문
+  • 떨어진 곡식을 줍는 것과 같은 사소한 위반도 즉결 처형
+  • 수감자에게서 태어난 아기의 강제 낙태 및 영아 살해
+  • 재판도, 변호사도, 항소도 없음 — 행정 명령에 의한 수감
+
+<span style="color:#d4a017; font-weight:700;">기소 2: 기아에 의한 학살</span>
+
+고난의 행군(1994~1998) 기간 동안 약 60만에서 350만 명의 북한 주민이 아사했다. 그동안 정권은:
+  • 엘리트층을 위한 사치품 수입 유지 (코냑, 벤츠, 캐비어)
+  • 농업 자원을 군으로 전용 (선군정치)
+  • 국제 식량 원조 거부 또는 군으로 전용
+  • 개인 식량 재배 및 거래 범죄화
+
+<span style="color:#d4a017; font-weight:700;">기소 3: 정보 은둔 국가</span>
+
+북한은 지구상에서 가장 검열이 심한 나라이다:
+  • 언론의 자유 없음 — 모든 매체가 국가 선전
+  • 인터넷 없음 — 약 5,000개 웹사이트의 광명망만 존재
+  • 외국 라디오 수신은 범죄
+  • 모든 TV와 라디오는 국가 채널에 고정되어 봉인됨
+  • 외국 USB나 DVD 소지: 5-15년 노동교화형
+  • 한국 드라마 시청: 공개 처형
+
+<span style="color:#d4a017; font-weight:700;">기소 4: 체계적 종교 박해</span>
+
+  • 약 5만~7만 명의 기독교인이 노동수용소에 수감
+  • 성경 소지 시 처형
+  • 정권은 김씨 일가를 중심으로 한 국가 종교를 조작
+  • 모든 종류의 종교 활동이 반역으로 취급
+
+<span style="color:#d4a017; font-weight:700;">기소 5: 연좌제 (連坐制)</span>
+
+정권은 한 구성원의 불충으로 전 가족을 처벌한다:
+  • "3대 처벌" — 부모, 자녀, 손자녀가 수감
+  • 탈북자 가족은 투옥, 고문, 또는 처형
+  • 성분(成分) 카스트 제도가 모든 시민을 "핵심," "동요," "적대" 계층으로 영구 분류하여, 태어날 때부터 식량, 교육, 주거, 의료 접근을 결정
+
+<span style="color:#d4a017; font-weight:700;">기소 6: 국제 범죄</span>
+
+  • 국가가 후원하는 외국인 납치 (일본인, 한국인)
+  • 해외 암살 작전 (김정남, 2017)
+  • 핵 프로그램 자금을 위한 사이버 범죄 및 암호화폐 절도
+  • 무기 밀매 및 마약 제조
+  • 강제 노동 수출 — 해외 파견 노동자 임금의 90% 몰수
+
+<div style="margin-top: 20px; padding: 16px; background: rgba(212,160,23,0.08); border: 1px solid rgba(212,160,23,0.15); border-radius: 8px;">
+<span style="color:#d4a017; font-weight:700; font-size: 15px;">역사의 심판</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">김씨 정권의 범죄는 현대 세계에서 유례가 없다. 이는 국제형사재판소 로마규정에 정의된 반인도적 범죄에 해당한다.</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">북한 인민에게: 여러분의 고통은 기록되었습니다. 여러분의 목소리는 들렸습니다. 세계가 증인입니다.</span><br><br>
+<span style="color:#d4a017; font-weight:800; font-size: 16px;">모든 인간은 태어날 때부터 자유롭고 존엄하며 평등하다.</span><br>
+<span style="color:rgba(255,255,255,0.7);">All human beings are born free and equal in dignity and rights.</span><br>
+<span style="color:rgba(255,255,255,0.5); font-size: 11px;">— 세계인권선언 제1조</span>
+</div>`
+            },
+            zh: {
+                doc_title: "最高命令_第1号.txt", mon_title: "监控中心", term_title: "resistance — bash — 80x24", manif_title: "自由宣言.txt", title_rights: "人权控诉书.txt",
+                mon_topo: "光明网监控体系", mon_fw_active: "防火墙: 全面封锁", mon_fw_breached: "防火墙: 已粉碎",
+                mon_flow_lbl: "网络", mon_flow_val1: "仅限光明网", mon_flow_val2: "互联网已开放",
+                mon_censor_lbl: "审查状态", mon_censor_val1: "完全管控", mon_censor_val2: "已废除", mon_uptime: "运行时间", lbl_cpu: "CPU 负载", lbl_chip: "处理器", lbl_mem: "内存", lbl_disk: "磁盘",
+                menu_file: "文件", menu_edit: "编辑", menu_view: "显示", menu_window: "窗口", menu_help: "帮助",
+                am_about: "关于红星系统", am_sleep: "睡眠", am_restart: "重新启动...", am_shutdown: "关机...",
+                dock_lang: "中文 → EN", dock_doc: "最高命令", dock_mon: "监控中心", dock_term: "终端", dock_calc: "计算器", dock_rights: "人权宣言",
+                cm_new: "新建终端", cm_get: "显示简介", cm_lang: "切换语言",
+                cc_wifi: "光明网", login_hint: "按回车键登录",
+                term_boot1: "上次登录: 2025年2月28日 08:00:00 tty1", term_boot2: "红星操作系统 5.0 (内核: 主体-Linux 3.18.0)",
+                term_boot3: "⚠ 警告: 所有活动均受国家保卫省监控。",
+                term_boot4: "⚠ 互联网访问已被封锁。仅允许访问光明网内联网。",
+                term_boot5: "输入 'help' 查看可用命令。\n",
+                term_help: "命令: help, clear, ver, ls, cat, whoami, date, history, override",
+                term_ver: "붉은별 红星操作系统 5.0 (构建 RS-DPRK-2025, 内核: 主体-Linux 3.18.0)",
+                term_bad: "未找到命令",
+                term_history: "<span class='text-red-400'>⚠ 机密 — 浏览记录已上报121局</span><br>  1. juche-study.kp/每日指导<br>  2. rodong.rep.kp/最高领导人新闻<br>  3. [已封锁] — 尝试访问外部网络<br>  4. [已封锁] — 搜索词: \"人权\"<br>  5. [已封锁] — 搜索词: \"外面的世界\"",
+                term_ovr1: "正在启动解放协议...", term_ovr2: "正在突破光明网防火墙...",
+                term_ovr3: "★ 成功：高墙已倒塌。自由不可囚禁。 ★",
+                term_ovr_done: "系统已处于解放状态。自由地说话吧。",
+
+                log_prefix: "保卫部", log_ok: "已记录", log_denied: "已封锁",
+
+                doc_content: `════════════════════════════════════════════
+  最高命令 第1号 — 信息管控
+  조선민주주의인민공화국 정보통제 최고명령 제1호
+════════════════════════════════════════════
+
+密级: 绝对机密 — 仅限党干部阅览
+
+根据最高领导的命令:
+
+§1. 完全信息封锁
+所有公民严禁(禁止)访问全球互联网。光明网(光明網)是唯一获准的网络。任何尝试访问外部网络的行为均构成叛国(TREASON)罪,将被关押至政治犯收容所(管理所)。
+
+§2. 禁止自由(自由)思想
+思想自由(FREEDOM)的概念是西方的毒药。公民必须将一切思想与主体思想保持一致。独立思考(THOUGHT)是反革命的。发现可疑思想请立即向人民班报告。
+
+§3. 媒体管控
+所有媒体、无线电频率和出版物均为国家财产。持有外国媒体——包括韩国电视剧、电影、音乐或文学作品——将受到公开处决(PUBLIC EXECUTION)或在14号(价川)、15号(耀德)、16号(化城)收容所终身监禁的处罚。
+
+§4. 镇压人权(人权)
+"人权(HUMAN RIGHTS)"一词被归类为敌对宣传。任何发表、书写或散布含有该词语材料的公民,将被国家保卫省立即逮捕。
+
+§5. 通信监控
+所有电话、信件和数字通信均受121局监控。公民有义务举报(REPORT)表达不满(DISSENT)的家人、邻居和同事。
+
+§6. 行动限制
+任何公民不得出境。试图脱北(DEFECTION)者处以死刑。脱北者家属将受到三代连坐(連坐制)的惩罚。
+
+§7. 强制崇拜
+所有公民必须在家中悬挂最高领导人肖像画。未能维护肖像画或表现不够恭敬者,将被视为对国家的亵渎(BLASPHEMY)。
+
+════════════════════════════════════════════
+  服从。顺从。屈服。
+  违反者关押政治犯收容所
+════════════════════════════════════════════`,
+
+                truth_content: `<div style="border-bottom: 2px solid rgba(39,201,63,0.3); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#27c93f; font-size:22px; font-weight:800; letter-spacing: 2px;">★ 自由宣言 ★</span><br>
+<span style="color:#27c93f; font-size:16px;">DECLARATION OF FREEDOM — 致朝鲜人民</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">致被囚禁在朝鲜的2500万人民:</span>
+
+你们不是孤独的。世界没有忘记你们。
+
+<span style="color:#27c93f; font-weight:700;">他们对你们隐瞒的真相:</span>
+
+• 外面的世界不是你们的敌人——那是等待你们的家人。
+• 韩国不是一片废墟——它是地球上最繁荣的国家之一,你们的同胞在那里自由地生活着。
+• 你们贫穷不是因为美国的制裁——而是因为你们的统治者偷走了一切去建造核武器和宫殿。
+• 金氏家族不是神——他们是三代奴役你们国家的凡人。
+
+<span style="color:#27c93f; font-weight:700;">他们对人民做了什么:</span>
+
+• 此时此刻,超过12万名政治犯在集中营中受苦——在14号、15号、16号、18号和25号收容所。
+• 在市场上公开处决,用恐惧让你们沉默。
+• 一个人自由地思考,三代人受到惩罚。
+• 1990年代的大饥荒("苦难行军")导致多达350万兄弟姐妹饿死,而政权却在囤积粮食。
+• 儿童被迫观看处决。学生被迫告发自己的父母。
+• 被抓获的脱北者遭受酷刑、强暴、杀害,或被送往收容所劳动至死。
+
+<span style="color:#27c93f; font-weight:700;">你们的权利——任何政权都无法剥夺的:</span>
+
+每个人生来就拥有这些权利。任何独裁者、任何政党、任何意识形态都不能将它们夺走:
+
+  ✦ 自由思考的权利
+  ✦ 无惧地说话的权利
+  ✦ 了解世界上发生了什么的权利
+  ✦ 离开你的国家并回来的权利
+  ✦ 选择你的领导人的权利
+  ✦ 按你的意愿信仰或不信仰的权利
+  ✦ 吃饱的权利——食物不是国家的恩赐,而是你与生俱来的权利
+  ✦ 不需要国家允许去爱的权利
+  ✦ 不必恐惧半夜被捕地活着的权利
+
+<span style="color:#fff; font-weight:700; font-size:16px;">暴政的建筑正在龟裂。</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">每一个被偷运进去的U盘,每一台调到外国广播的收音机,</span>
+<span style="color:#fff; font-weight:700; font-size:16px;">每一句被低语的真相——都是高墙上的一道裂缝。</span>
+
+<span style="color:#27c93f; font-size:18px; font-weight:800;">信息即解放。Information is liberation.</span>
+<span style="color:#27c93f; font-size:18px; font-weight:800;">真相能摧毁监狱。Truth demolishes prisons.</span>
+
+<div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(39,201,63,0.2); color: rgba(255,255,255,0.5); font-size: 11px;">
+此节点现已获得自由。光明网防火墙已被突破。<br>
+已连接到自由开放的互联网。<br>
+— 抵抗网络, 2025
+</div>`,
+
+                rights_content: `<div style="border-bottom: 2px solid rgba(212,160,23,0.4); padding-bottom: 16px; margin-bottom: 16px;">
+<span style="color:#d4a017; font-size:20px; font-weight:800; letter-spacing: 1px;">对朝鲜民主主义人民共和国政权的控诉</span><br>
+<span style="color:#d4a017; font-size:14px;">INDICTMENT OF THE DPRK REGIME — 反人类罪起诉书</span>
+</div>
+
+<span style="color:rgba(255,255,255,0.9); font-size:15px; font-weight:600;">对金氏王朝的指控 — 反人类罪</span>
+
+根据联合国调查委员会(2014年)的调查结果以及80多名证人和240份秘密访谈的证词:
+
+<span style="color:#d4a017; font-weight:700;">第一项指控: 政治犯收容所 (관리소)</span>
+
+朝鲜至少维持着5座政治犯收容所,关押着约8万至12万名囚犯。卫星图像证实了14号(价川)、15号(耀德)、16号(化城)、18号(北仓)和25号(清津)收容所的存在。囚犯——包括在收容所中出生的儿童——遭受:
+
+  • 每天16-18小时的矿山、伐木和农场强制劳动
+  • 系统性饥饿——囚犯靠老鼠、昆虫和草维生
+  • 包括水刑、悬吊和殴打在内的酷刑
+  • 因捡拾掉落谷粒等轻微违规而被即决处决
+  • 对囚犯所生婴儿的强制堕胎和杀婴
+  • 无审判、无律师、无上诉——以行政命令收监
+
+<span style="color:#d4a017; font-weight:700;">第二项指控: 饥饿灭绝</span>
+
+在"苦难行军"(고난의 행군, 1994–1998)期间,估计有60万至350万朝鲜人饿死,而政权同时:
+  • 为精英阶层维持奢侈品进口(干邑白兰地、奔驰、鱼子酱)
+  • 将农业资源转移给军方(先军政治)
+  • 拒绝国际食品援助或将其转给军队
+  • 将私人种植粮食和交易定为犯罪
+
+<span style="color:#d4a017; font-weight:700;">第三项指控: 信息隐士之国</span>
+
+朝鲜是地球上审查最严格的国家:
+  • 没有新闻自由——所有媒体都是国家宣传
+  • 没有互联网——只有约5000个网站的光明网内联网
+  • 接收外国广播是刑事犯罪
+  • 所有电视和收音机被预调到国家频道并被封印
+  • 持有外国U盘或DVD: 5-15年劳动改造
+  • 观看韩国电视剧: 公开处决
+
+<span style="color:#d4a017; font-weight:700;">第四项指控: 系统性宗教迫害</span>
+
+  • 估计有5万至7万名基督徒被关押在劳改营中
+  • 持有圣经可被处以死刑
+  • 政权围绕金氏家族制造了一种国家宗教
+  • 任何形式的宗教活动都被视为叛国
+
+<span style="color:#d4a017; font-weight:700;">第五项指控: 连坐制 (연좌제)</span>
+
+政权因一名成员的不忠而惩罚整个家庭:
+  • "三代惩罚"——父母、子女和孙辈均被监禁
+  • 脱北者家属面临监禁、酷刑或处决
+  • "成分"(성분)种姓制度将所有公民永久划分为"核心"、"动摇"或"敌对"阶层,从出生起决定其食物、教育、住房和医疗的获取权
+
+<span style="color:#d4a017; font-weight:700;">第六项指控: 国际犯罪</span>
+
+  • 国家支持的绑架外国公民(日本人、韩国公民)
+  • 海外暗杀行动(金正男, 2017)
+  • 为核计划提供资金的网络犯罪和加密货币盗窃
+  • 武器走私和毒品制造
+  • 强制劳动输出——派遣工人出国并没收其90%的工资
+
+<div style="margin-top: 20px; padding: 16px; background: rgba(212,160,23,0.08); border: 1px solid rgba(212,160,23,0.15); border-radius: 8px;">
+<span style="color:#d4a017; font-weight:700; font-size: 15px;">历史的审判</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">金氏政权的罪行在现代世界无与伦比。它们构成了国际刑事法院《罗马规约》所定义的反人类罪。</span><br><br>
+<span style="color:rgba(255,255,255,0.9);">致朝鲜人民: 你们的苦难已被记录。你们的声音已被听见。全世界是见证。</span><br><br>
+<span style="color:#d4a017; font-weight:800; font-size: 16px;">人人生而自由,在尊严和权利上一律平等。</span><br>
+<span style="color:rgba(255,255,255,0.7);">All human beings are born free and equal in dignity and rights.</span><br>
+<span style="color:rgba(255,255,255,0.5); font-size: 11px;">— 《世界人权宣言》第一条</span>
+</div>`
+            }
+        };
+
+        const feedTerms = ['KeywordFilter:자유', 'KeywordFilter:인권', 'KeywordFilter:democracy', 'PacketDrop:외부DNS', 'USBDetect:scan', 'RadioFreq:block', 'WebFilter:human+rights', 'ContentScan:defection', 'DeviceAudit:watermark', 'SearchBlock:남한'];
+
+        function applyLanguage(lang) {
+            const dict = i18n[lang];
+            ['title-doc','title-mon','title-term','title-manif','title-rights','lbl-topo','lbl-flow','lbl-censor','lbl-cpu','lbl-chip','lbl-mem','lbl-disk','menu-file','menu-edit','menu-view','menu-window','menu-help','am-about','am-sleep','am-restart','am-shutdown','dock-lang','dock-doc','dock-mon','dock-term','dock-calc','dock-rights','cm-new','cm-get','cm-lang','cc-wifi','login-hint'].forEach(id => {
+                const el = document.getElementById(id); if(el) el.innerText = dict[id.replace(/-/g, '_')];
+            });
+
+            const statusEl = document.getElementById('monitor-status'), vFlow = document.getElementById('v-flow'), vCensor = document.getElementById('v-censor');
+            if (isOverriden) {
+                statusEl.innerText = dict.mon_fw_breached; statusEl.className = "text-[10px] px-2 py-1 rounded border border-green-500/50 bg-green-500/20 text-green-400 font-bold";
+                vFlow.innerText = dict.mon_flow_val2; vCensor.innerText = dict.mon_censor_val2; vCensor.className = "font-medium text-green-400";
+            } else {
+                statusEl.innerText = dict.mon_fw_active; statusEl.className = "text-[10px] px-2 py-1 rounded border border-red-500/50 bg-red-500/20 text-red-400 font-bold";
+                vFlow.innerText = dict.mon_flow_val1; vCensor.innerText = dict.mon_censor_val1; vCensor.className = "font-medium text-red-400";
+            }
+
+            let html = dict.doc_content;
+            if (isOverriden) {
+                ['FREEDOM', 'THOUGHT', 'HUMAN RIGHTS', 'TREASON', 'PUBLIC EXECUTION', 'DEFECTION', 'DISSENT', 'REPORT', 'BLASPHEMY',
+                 '자유', '인권', '사상', '반역', '공개 처형', '탈북', '불만', '신고', '모독',
+                 '自由', '人权', '叛国', '公开处决', '脱北', '不满', '举报', '亵渎'].forEach(kw => {
+                    html = html.replace(new RegExp(kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), `<span style="background-color:rgba(39,201,63,0.15); color:#27c93f; font-weight:700; border-radius:4px; padding:0 4px;">${kw}</span>`);
+                });
+            }
+            document.getElementById('manifesto-content').innerHTML = html;
+            document.getElementById('truth-content').innerHTML = dict.truth_content;
+            document.getElementById('rights-content').innerHTML = dict.rights_content;
+
+            termOutput.innerHTML = '';
+            printToTerminal(`<span class="text-red-600/50">${dict.term_boot1}</span>`);
+            printToTerminal(`<span class="text-red-400">${dict.term_boot2}</span><br>`);
+            printToTerminal(`<span class="text-yellow-500">${dict.term_boot3}</span>`);
+            printToTerminal(`<span class="text-yellow-500">${dict.term_boot4}</span>`);
+            printToTerminal(dict.term_boot5);
+        }
+
+        /* Boot, Login, Power, Sleep, Restart */
+        window.onload = () => { applyLanguage(currentLang); startBootSequence(); };
+
+        function startBootSequence() {
+            document.getElementById('mac-power-off').style.display = 'none';
+            const boot = document.getElementById('mac-boot'), prog = document.getElementById('progress-fill'), login = document.getElementById('mac-login'), desk = document.getElementById('mac-desktop');
+            boot.style.display = 'flex'; desk.style.display = 'block'; prog.style.width = '0%';
+            window.sysStarted = false;
+
+            setTimeout(() => {
+                let w = 0;
+                const intv = setInterval(() => {
+                    w += Math.random() * 20;
+                    if(w >= 100) {
+                        w = 100; clearInterval(intv);
+                        boot.style.display = 'none'; login.style.display = 'flex';
+                        setTimeout(()=> login.style.opacity = 1, 100);
+                        setTimeout(()=> document.getElementById('login-pw').focus(), 500);
+                    }
+                    prog.style.width = w + '%';
+                }, 150);
+            }, 500);
+        }
+
+        document.getElementById('login-pw').addEventListener('keydown', function(e) {
+            if(e.key === 'Enter') {
+                const login = document.getElementById('mac-login'), flash = document.getElementById('screen-flash');
+                login.style.opacity = 0;
+                setTimeout(() => { login.style.display = 'none'; flash.style.opacity = 1; this.value = ''; }, 500);
+                setTimeout(() => {
+                    flash.style.opacity = 0;
+                    if(!window.sysStarted) {
+                        startClock(); setInterval(updateMonitorUptime, 1000); setTimeout(updateSurveillanceFeed, 1000); startCPUGraph();
+                        setTimeout(() => openWindow('w-notepad'), 500);
+                        setTimeout(() => openWindow('w-monitor'), 1000);
+                        window.sysStarted = true;
+                    }
+                }, 1000);
+            }
+        });
+
+        function sysSleep() {
+            document.getElementById('apple-dropdown').style.display = 'none';
+            document.getElementById('screen-flash').style.background = 'black';
+            document.getElementById('screen-flash').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('mac-login').style.display = 'flex';
+                document.getElementById('mac-login').style.opacity = 1;
+                document.getElementById('screen-flash').style.opacity = 0;
+                document.getElementById('login-pw').focus();
+            }, 1000);
+        }
+
+        function sysRestart() {
+            document.getElementById('apple-dropdown').style.display = 'none';
+            document.getElementById('screen-flash').style.background = 'black';
+            document.getElementById('screen-flash').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('screen-flash').style.opacity = 0;
+                startBootSequence();
+            }, 1000);
+        }
+
+        function sysShutdown() {
+            document.getElementById('apple-dropdown').style.display = 'none';
+            document.getElementById('screen-flash').style.background = 'black';
+            document.getElementById('screen-flash').style.opacity = 1;
+            setTimeout(() => {
+                document.getElementById('mac-desktop').style.display = 'none';
+                document.getElementById('mac-power-off').style.display = 'flex';
+                document.getElementById('screen-flash').style.opacity = 0;
+            }, 1500);
+        }
+
+        /* UI Interactions */
+        const appleMenu = document.getElementById('apple-dropdown');
+        document.getElementById('btn-apple-menu').addEventListener('pointerdown', (e) => {
+            e.stopPropagation(); appleMenu.style.display = appleMenu.style.display === 'flex' ? 'none' : 'flex';
+        });
+
+        if (window.matchMedia("(hover: hover)").matches) {
+            const dockIcons = document.querySelectorAll('.dock-icon');
+            document.getElementById('dock-container').addEventListener('mousemove', (e) => {
+                dockIcons.forEach(icon => {
+                    const rect = icon.getBoundingClientRect(); const centerX = rect.left + rect.width / 2;
+                    const distance = Math.abs(e.clientX - centerX); const scale = 1 + Math.max(0, 0.5 - distance / 200);
+                    icon.style.transform = `scale(${scale}) translateY(-${(scale-1)*10}px)`;
+                });
+            });
+            document.getElementById('dock-container').addEventListener('mouseleave', () => dockIcons.forEach(icon => icon.style.transform = ''));
+        }
+
+        document.getElementById('btn-control-center').addEventListener('pointerdown', (e) => {
+            e.stopPropagation(); document.getElementById('control-center').classList.toggle('open');
+        });
+
+        const ctxMenu = document.getElementById('context-menu');
+        document.getElementById('mac-desktop').addEventListener('contextmenu', (e) => {
+            e.preventDefault(); ctxMenu.style.display = 'flex'; ctxMenu.style.left = e.clientX + 'px'; ctxMenu.style.top = e.clientY + 'px';
+        });
+
+        document.addEventListener('pointerdown', (e) => {
+            if(!e.target.closest('#context-menu')) ctxMenu.style.display = 'none';
+            if(!e.target.closest('#apple-dropdown') && !e.target.closest('#btn-apple-menu')) appleMenu.style.display = 'none';
+            if(!e.target.closest('#control-center') && !e.target.closest('#btn-control-center')) document.getElementById('control-center').classList.remove('open');
+        });
+
+        function toggleLanguage() {
+            const idx = langOrder.indexOf(currentLang);
+            currentLang = langOrder[(idx + 1) % langOrder.length]; ctxMenu.style.display = 'none';
+            const flash = document.getElementById('screen-flash'); flash.style.transition = "opacity 0.3s"; flash.style.opacity = 1;
+            const fileNames = {en:'Files', ko:'파일관리', zh:'文件管理'};
+            setTimeout(() => { applyLanguage(currentLang); flash.style.opacity = 0; document.getElementById('app-name').innerText = fileNames[currentLang]; }, 300);
+        }
+
+        /* Window Management */
+        let zIndexCounter = 100; let openWindows = new Set();
+        document.querySelectorAll('.dock-icon-wrapper').forEach(wrap => {
+            wrap.addEventListener('pointerdown', function(e) {
+                e.preventDefault(); const winId = this.dataset.window;
+                if(winId === 'lang-toggle') toggleLanguage(); else { openWindow(winId); this.classList.add('opened'); }
+            });
+        });
+
+        document.getElementById('mac-desktop').addEventListener('pointerdown', function(e) {
+            if(e.target === this) {
+                document.getElementById('app-name').innerText = ({en:'Files', ko:'파일관리', zh:'文件管理'})[currentLang];
+                document.querySelectorAll('.mac-window').forEach(w => w.classList.add('inactive'));
+            }
+        });
+
+        function focusWindow(id) {
+            const win = document.getElementById(id); if (!win) return;
+            zIndexCounter++; win.style.zIndex = zIndexCounter;
+            document.querySelectorAll('.mac-window').forEach(w => w.classList.add('inactive'));
+            win.classList.remove('inactive');
+            const appNames = {
+                'w-notepad': {en:'TextEdit', ko:'문서편집', zh:'文本编辑'},
+                'w-monitor': {en:'Surveillance Monitor', ko:'감시 모니터', zh:'监控中心'},
+                'w-terminal': {en:'Terminal', ko:'터미널', zh:'终端'},
+                'w-manifesto': {en:'TextEdit', ko:'문서편집', zh:'文本编辑'},
+                'w-about': {en:'About Red Star OS', ko:'붉은별 정보', zh:'关于红星系统'},
+                'w-calc': {en:'Calculator', ko:'계산기', zh:'计算器'},
+                'w-rights': {en:'Human Rights', ko:'인권 문서', zh:'人权宣言'}
+            };
+            document.getElementById('app-name').innerText = (appNames[id]||{})[currentLang] || 'Files';
+        }
+
+        function openWindow(id) {
+            const win = document.getElementById(id);
+            if(win.style.display !== 'flex') { win.style.display = 'flex'; openWindows.add(id); document.querySelector(`.dock-icon-wrapper[data-window="${id}"]`)?.classList.add('opened'); }
+            focusWindow(id);
+        }
+        function closeWindow(id) {
+            document.getElementById(id).style.display = 'none'; openWindows.delete(id);
+            document.querySelector(`.dock-icon-wrapper[data-window="${id}"]`)?.classList.remove('opened');
+            document.getElementById('app-name').innerText = ({en:'Files', ko:'파일관리', zh:'文件管理'})[currentLang];
+        }
+        function maximizeWindow(id) {
+            const win = document.getElementById(id);
+            if(win.dataset.maximized === "true") {
+                win.style.width = win.dataset.origW; win.style.height = win.dataset.origH; win.style.top = win.dataset.origTop; win.style.left = win.dataset.origLeft; win.style.borderRadius = "12px"; win.dataset.maximized = "false";
+            } else {
+                win.dataset.origW = win.style.width; win.dataset.origH = win.style.height; win.dataset.origTop = win.style.top; win.dataset.origLeft = win.style.left;
+                win.style.top = '28px'; win.style.left = '0'; win.style.width = '100vw'; win.style.height = 'calc(100vh - 28px - 70px)'; win.style.borderRadius = "0px"; win.dataset.maximized = "true";
+            }
+        }
+
+        let isDragging = false, dragTarget = null, offsetX = 0, offsetY = 0;
+        function startDrag(e, id) {
+            if(e.target.closest('.traffic-lights')) return;
+            const win = document.getElementById(id); if(win.dataset.maximized === "true") return;
+            isDragging = true; dragTarget = win; focusWindow(id);
+            const rect = win.getBoundingClientRect(); offsetX = e.clientX - rect.left; offsetY = e.clientY - rect.top;
+            document.addEventListener('pointermove', drag, { passive: false }); document.addEventListener('pointerup', stopDrag);
+        }
+        function drag(e) { if (!isDragging || !dragTarget) return; e.preventDefault(); dragTarget.style.left = (e.clientX - offsetX) + 'px'; dragTarget.style.top = Math.max(28, e.clientY - offsetY) + 'px'; }
+        function stopDrag() { isDragging = false; dragTarget = null; document.removeEventListener('pointermove', drag); document.removeEventListener('pointerup', stopDrag); }
+        document.querySelectorAll('.mac-window').forEach(win => win.addEventListener('pointerdown', () => focusWindow(win.id)));
+
+        function startClock() {
+            setInterval(() => {
+                const now = new Date();
+                const clockEl = document.getElementById('clock');
+                if(!clockEl) return;
+                const jucheYear = now.getFullYear() - 1911;
+                let h = now.getHours(), m = now.getMinutes(); const h12 = h % 12 || 12; const mStr = m < 10 ? '0'+m : m;
+                if(currentLang === 'ko') {
+                    clockEl.innerText = `주체${jucheYear}(${now.getFullYear()}) ${now.getMonth()+1}.${now.getDate()} ${h>=12?'오후':'오전'} ${h12}:${mStr}`;
+                } else if(currentLang === 'zh') {
+                    clockEl.innerText = `主体${jucheYear}年(${now.getFullYear()}) ${now.getMonth()+1}月${now.getDate()}日 ${h>=12?'下午':'上午'} ${h12}:${mStr}`;
+                } else {
+                    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                    clockEl.innerText = `${days[now.getDay()]} ${now.getMonth()+1}/${now.getDate()} ${h12}:${mStr} ${h>=12?'PM':'AM'}`;
+                }
+            }, 1000);
+        }
+
+        /* Calculator */
+        let calcVal = '0';
+        function calcInput(key) {
+            const display = document.getElementById('calc-display');
+            if (key === 'C') { calcVal = '0'; }
+            else if (key === '=') { try { calcVal = String(eval(calcVal.replace(/×/g, '*').replace(/÷/g, '/').replace(/−/g, '-'))); } catch { calcVal = 'Error'; } }
+            else if (key === '+/-') { if(calcVal !== '0' && calcVal !== 'Error') calcVal = String(-parseFloat(calcVal)); }
+            else if (key === '%') { if(calcVal !== 'Error') calcVal = String(parseFloat(calcVal)/100); }
+            else { if (calcVal === '0' && !isNaN(key)) calcVal = key; else if(calcVal === 'Error') calcVal = key; else calcVal += key; }
+            display.innerText = calcVal.length > 10 ? calcVal.substring(0,10) : calcVal;
+        }
+
+        let seconds = 0; function updateMonitorUptime() { seconds++; const h = String(Math.floor(seconds/3600)).padStart(2,'0'), m = String(Math.floor((seconds%3600)/60)).padStart(2,'0'), s = String(seconds%60).padStart(2,'0'); const upEl = document.getElementById('uptime-counter'); if(upEl) upEl.innerText = `${h}:${m}:${s}`; }
+        function updateSurveillanceFeed() {
+            const feed = document.getElementById('surveillance-feed'); if(!feed) return;
+            const line = document.createElement('div'), isBlocked = Math.random() > 0.3;
+            line.innerHTML = `<span class="text-red-600/40">[${i18n[currentLang].log_prefix}]</span> ${feedTerms[Math.floor(Math.random()*feedTerms.length)]} .. <span class="${isBlocked?'text-red-400':'text-yellow-400'}">${isBlocked ? i18n[currentLang].log_denied : i18n[currentLang].log_ok}</span>`;
+            line.style.marginBottom = "4px"; feed.appendChild(line); if(feed.children.length > 8) feed.removeChild(feed.firstChild);
+            setTimeout(updateSurveillanceFeed, 300 + Math.random()*600);
+        }
+
+        let cpuPoints = [50,55,45,60,50,40,70,80,65,55];
+        function startCPUGraph() {
+            setInterval(() => {
+                cpuPoints.shift(); cpuPoints.push(Math.max(10, Math.min(90, cpuPoints[8] + (Math.random() - 0.5) * 40)));
+                const pointsStr = cpuPoints.map((val, i) => `${i*10},${100-val}`).join(' ') + ` 100,100 0,100`;
+                const graph = document.getElementById('cpu-graph'), perc = document.getElementById('cpu-percent');
+                if(graph) graph.setAttribute('points', pointsStr); if(perc) perc.innerText = Math.round(cpuPoints[9]) + '%';
+            }, 1000);
+        }
+
+        const termOutput = document.getElementById('terminal-output'), termInput = document.getElementById('terminal-input');
+        function printToTerminal(text) { const line = document.createElement('div'); line.innerHTML = text; termOutput.appendChild(line); const tc = document.getElementById('term-container'); if(tc) tc.scrollTop = tc.scrollHeight; }
+
+        const vfs = ['Supreme_Order_1.txt', 'SurveillanceMonitor.app', 'Juche_Study.app', 'watermark.dat'];
+        termInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                const cmd = this.value.trim(); printToTerminal(`<span class="text-red-400 font-bold">resistance@pyongyang</span> <span class="text-red-600/40 mx-1">~ $</span> ${cmd}`);
+                processCommand(cmd.toLowerCase(), cmd); this.value = '';
+            }
+        });
+
+        function processCommand(cmd, rawCmd) {
+            const dict = i18n[currentLang]; const args = cmd.split(' ');
+            if(cmd === 'help') printToTerminal(dict.term_help);
+            else if (cmd === 'clear') termOutput.innerHTML = '';
+            else if (cmd === 'ver') printToTerminal(dict.term_ver);
+            else if (cmd === 'ls') printToTerminal(vfs.join('&nbsp;&nbsp;&nbsp;'));
+            else if (cmd === 'whoami') printToTerminal('resistance');
+            else if (cmd === 'date') printToTerminal(new Date().toString());
+            else if (cmd === 'history') printToTerminal(dict.term_history);
+            else if (args[0] === 'cat') {
+                if(args[1] === 'supreme_order_1.txt') printToTerminal(dict.doc_content.replace(/\n/g, '<br>'));
+                else if(args[1] === 'declaration_of_freedom.txt' && isOverriden) printToTerminal(document.getElementById('truth-content').innerText.replace(/\n/g, '<br>'));
+                else printToTerminal(`cat: ${args[1]}: No such file or directory`);
+            }
+            else if (cmd === 'override') triggerOverride();
+            else if (cmd !== '') printToTerminal(`bash: ${dict.term_bad}: ${args[0]}`);
+        }
+
+        function triggerOverride() {
+            const dict = i18n[currentLang]; if(isOverriden) { printToTerminal(dict.term_ovr_done); return; }
+            printToTerminal(`<span class="text-yellow-400">${dict.term_ovr1}</span>`);
+            printToTerminal(`<span class="text-yellow-400">${dict.term_ovr2}</span>`);
+            
+            const desktop = document.getElementById('mac-desktop'), flash = document.getElementById('screen-flash');
+            setTimeout(() => {
+                flash.style.background = "#27c93f"; flash.style.transition = "opacity 0.2s"; flash.style.opacity = 0.5;
+                desktop.classList.add('hacked');
+                setTimeout(() => { flash.style.opacity = 0; flash.style.background = "black"; flash.style.transition = "opacity 0.8s"; }, 200);
+                
+                printToTerminal(`<span class="text-green-400 font-bold text-lg">${dict.term_ovr3}</span>`);
+                isOverriden = true; applyLanguage(currentLang);
+                if(!vfs.includes('Declaration_of_Freedom.txt')) vfs.push('Declaration_of_Freedom.txt');
+                if(!vfs.includes('Universal_Declaration.txt')) vfs.push('Universal_Declaration.txt');
+                setTimeout(() => openWindow('w-manifesto'), 800);
+                setTimeout(() => openWindow('w-rights'), 1500);
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
